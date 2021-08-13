@@ -1,0 +1,18 @@
+---
+- hosts: all
+  remote_user: root
+  vars_prompt:
+    - name: "push"
+      prompt: "What file would you like to push? Please include the full path"
+      private: no
+    - name: "path"
+      prompt: "Where would you like the file to be copied to on the remote system? Please include the full path"
+      private: no
+
+  tasks:
+
+  - name: Copy files
+    copy:
+      src: "{{ push }}"
+      dest: "{{ path }}"
+      mode: 0700

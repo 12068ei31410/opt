@@ -1,0 +1,129 @@
+#!/bin/perl
+
+local $| = 1;
+
+use Getopt::Long; 
+
+#Old and latest checklist must exist on the same linux directory- ensure the var#iables odir and ldir are changed to reflect the directory the checklists reside#on.
+#Switch between /LEGACY_ID/ and /Rule_ID/ as necessary to successfully migrate old comments to new checklists.
+
+$odir = "~";
+$ldir = "~";
+
+my $old_ckl = ' ';
+my $latest_ckl = ' ';
+my $new_ckl = ' ';
+
+GetOptions("old|o=s"    => \$old_ckl,
+           "latest|l=s" => \$latest_ckl,
+           "new|n=s"    => \$new_ckl,);
+
+die ("\nUsage: ckl_parser -o <old> -l <latest> -n <new>
+  or ckl_parser -old <old> -l <latest> -n <new>
+  or ckl_parser --old <old> --latest <latest> --new <new>\n
+Options:
+-o -old --old       = Checklist file with comments. findings, and status.
+-l -latest --latest = Checklist file without comments.
+-n -new --new       = Checklist file to be created wit latest run and migated cooments. \n
+Order of options isnt important!\n\n")
+  unless ($new_ckl ne ' ' && $latest_ckl ne ' ');
+
+open (NF, ">$ldir/$new_ckl") || die("$!\n");
+
+select NF;
+
+open(LF, "$ldir/$latest_ckl") || die ("$!\n");
+
+&process_latest_ckl;
+
+close (NF);
+close (LF);
+
+############# END MAIN ##############
+
+############# SUBROUTINES ##############
+
+sub process_latest_ckl {
+
+  $rule_id = "";
+  $status = "";
+  $find_rule_id = "";
+  $found = "";
+
+  while (<LF>) {
+    if ($found eq "y") {
+      if ($_ =~ /<\/COMMENTS>/) {
+        $found = "";
+      }
+      next;
+    }
+
+    if ($_ =~ /<STATUS>/) {
+      $status = $_;
+      &find_in_old_ckl;
+      if ($found eq "y") {
+        $rule_id = "";
+        $status = "";
+      }
+      else {
+        print $status;
+      }
+      next;
+    }
+
+    print $_;
+
+    #if ($_ =~ /Rule_ID/) {
+    if ($_ =~ /LEGACY_ID/) { 
+      $find_rule_id = "y";
+      next;
+    }
+
+    if ($find_rule_id eq "y") {
+      $rule_id = $_;
+      $find_rule_id = "";
+    }
+  }
+}
+
+sub find_in_old_ckl {
+
+  $r_id = "";
+  $write_info = "";
+
+  open(OF, "$odir/$old_ckl") || die("$!\n");
+
+  while (<OF>) {
+
+    if (($_ =~ $rule_id) && ($r_id eq "")) {
+      $r_id = $_;
+      $found = "y";
+      next;
+    }
+
+    if ($r_id =~ $rule_id) {
+      if ($_ =~ /<\/COMMENTS>/) {
+        print $_;
+        last;
+      }
+      elsif ($_ =~ /<STATUS>/) {
+        if ($_ =~ /<STATUS>Not_Applicable/) {
+          $write_info = "y";
+          print $_;
+        }
+        else {
+          $write_info = "y";
+          print "$status";
+        }
+      }
+      elsif ($write_info eq "y") {
+        print $_;
+      }
+      }
+    }
+
+  close(OF);
+
+}
+
+###################### END SUBROUTINES #######################

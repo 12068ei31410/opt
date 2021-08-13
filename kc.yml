@@ -1,0 +1,12 @@
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+
+  - name: Check for kernel issues
+    shell: /opt/scripts/kernel_check.sh
+    register: result
+    failed_when:
+      - result.rc != 0
+  - debug: var=result.stdout_lines

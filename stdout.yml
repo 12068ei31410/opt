@@ -1,0 +1,14 @@
+---
+- hosts: all
+  remote_user: root
+  vars_prompt:
+  - name: "stdout"
+    prompt: "Command"
+    private: no
+
+  tasks:
+
+  - name: Display STDOUT
+    shell: "{{ stdout }}"
+    register: results
+  - debug: var=results.stdout_lines
